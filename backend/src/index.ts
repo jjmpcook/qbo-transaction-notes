@@ -1,0 +1,41 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import notesRouter from './routes/notes.js';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+
+app.use(cors({
+  origin: [
+    /^https:\/\/.*\.qbo\.intuit\.com$/,
+    /^https:\/\/.*\.intuit\.com$/,
+    /^chrome-extension:\/\/.*$/,
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
+app.use('/', notesRouter);
+
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    details: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+});

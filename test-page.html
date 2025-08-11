@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test QBO Transaction Page</title>
+</head>
+<body>
+    <h1>Mock QuickBooks Invoice</h1>
+    
+    <div data-automation-id="nameAddressComboBox">
+        <input value="Acme Corporation" readonly>
+    </div>
+    
+    <input data-automation-id="amount" value="1500.00" readonly>
+    <input data-automation-id="transaction-date" value="01/15/2024" readonly>
+    
+    <div>
+        <label>Customer:</label>
+        <span>Acme Corporation</span>
+    </div>
+    
+    <div>
+        <label>Amount:</label>
+        <span>$1,500.00</span>
+    </div>
+    
+    <script>
+        // Simulate QBO URL structure
+        const newUrl = window.location.origin + window.location.pathname + '?invoice&txnId=12345';
+        history.replaceState({}, '', newUrl);
+        
+        // Mock QBO domain for testing
+        Object.defineProperty(window.location, 'href', {
+            writable: true,
+            value: 'https://c1.qbo.intuit.com/app/invoice?txnId=12345'
+        });
+    </script>
+</body>
+</html>

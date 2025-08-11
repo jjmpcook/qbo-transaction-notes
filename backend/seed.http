@@ -1,0 +1,27 @@
+### Test health endpoint
+GET http://localhost:3000/health
+
+### Test create note
+POST http://localhost:3000/notes
+Content-Type: application/json
+
+{
+  "transaction_url": "https://c1.qbo.intuit.com/app/invoice?txnId=123",
+  "transaction_id": "123",
+  "transaction_type": "Invoice",
+  "date": "2024-01-15",
+  "amount": 1500.00,
+  "customer_vendor": "Acme Corp",
+  "note": "This is a test note for the transaction",
+  "created_by": "John Doe"
+}
+
+### Test validation error
+POST http://localhost:3000/notes
+Content-Type: application/json
+
+{
+  "transaction_url": "invalid-url",
+  "transaction_type": "Invoice",
+  "note": ""
+}

@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "QBO Transaction Notes",
+  "version": "1.0.0",
+  "description": "Add notes to QuickBooks Online transactions",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.qbo.intuit.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.qbo.intuit.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["styles.css"],
+      "matches": ["https://*.qbo.intuit.com/*"]
+    }
+  ]
+}

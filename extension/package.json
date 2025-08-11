@@ -1,0 +1,17 @@
+{
+  "name": "qbo-notes-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for adding notes to QuickBooks transactions",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc && vite build && npm run copy-files",
+    "copy-files": "cp manifest.json dist/ && cp src/styles.css dist/",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.251",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  }
+}
