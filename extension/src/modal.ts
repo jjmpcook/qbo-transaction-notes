@@ -2,7 +2,7 @@ import { getTransactionData } from './scraper.js';
 import { NotePayload, TransactionData, ApiError } from './types.js';
 
 declare const process: any;
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = 'https://qbo-transaction-notes.onrender.com';
 
 function createModalHTML(transactionData: TransactionData): string {
   return `

@@ -4,8 +4,15 @@ import { NotePayload } from './validate.js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+console.log('Environment check:');
+console.log('SUPABASE_URL exists:', !!supabaseUrl);
+console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceRoleKey);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.warn('⚠️  Missing Supabase credentials - notes will not be saved to database');
+  console.warn('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET');
+  console.warn('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey ? 'SET' : 'NOT SET');
 }
 
 export const supabase = supabaseUrl && supabaseServiceRoleKey 
