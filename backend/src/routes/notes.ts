@@ -12,7 +12,7 @@ router.post('/notes', async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: validation.error
+        details: 'error' in validation ? validation.error : 'Unknown validation error'
       });
     }
 
