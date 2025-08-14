@@ -37,11 +37,15 @@ Backend API for the QuickBooks Online transaction notes Chrome extension.
      date text,
      amount numeric,
      customer_vendor text,
+     invoice_number text,
      note text not null,
      created_by text,
      status text not null default 'Open',
      created_at timestamptz not null default now()
    );
+   
+   -- If table already exists, add the invoice_number column:
+   alter table notes add column if not exists invoice_number text;
    ```
 
 ## Development

@@ -5,6 +5,7 @@ export interface NotePayload {
   date: string;
   amount: number;
   customer_vendor: string;
+  invoice_number: string;
   note: string;
   created_by: string;
 }
@@ -16,6 +17,7 @@ export interface TransactionData {
   date: string | null;
   amount: number | null;
   customer_vendor: string | null;
+  invoice_number: string | null;
   created_by: string | null;
 }
 

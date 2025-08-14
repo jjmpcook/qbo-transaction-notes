@@ -47,6 +47,19 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
 
   const typeEmoji = getTypeEmoji(noteData.transaction_type);
   
+  // Get dynamic label for invoice/bill number field
+  const getNumberFieldLabel = (transactionType: string): string => {
+    switch (transactionType.toLowerCase()) {
+      case 'invoice':
+        return 'Invoice Number';
+      case 'expense':
+      case 'bill':
+        return 'Bill/Ref Number';
+      default:
+        return 'Number';
+    }
+  };
+
   // Create a more comprehensive message
   const message: SlackMessage = {
     text: `New Transaction Note: ${noteData.transaction_type} - ${formattedAmount}`,
@@ -78,6 +91,19 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
             text: `*Date:*\n${noteData.date || 'Not specified'}`
           }
         ]
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*${getNumberFieldLabel(noteData.transaction_type)}:*\n${noteData.invoice_number || 'Not specified'}`
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Created By:*\n${noteData.created_by || 'Unknown'}`
+          }
+        ]
       }
     ]
   };
@@ -90,10 +116,6 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
         {
           type: 'mrkdwn',
           text: `*Transaction ID:*\n${noteData.transaction_id}`
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Created By:*\n${noteData.created_by || 'Unknown'}`
         }
       ]
     });

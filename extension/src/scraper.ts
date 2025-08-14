@@ -19,29 +19,129 @@ function getTransactionIdFromUrl(): string | null {
 }
 
 function extractAmount(): number | null {
+  // Strategy 1: Try scoped search within transaction container
+  const transactionContainers = [
+    '[data-automation-id*="transaction"]',
+    '[data-automation-id*="expense"]',
+    '[data-automation-id*="invoice"]',
+    '.transaction-form',
+    '.expense-form',
+    '.invoice-form',
+    'form[data-automation-id*="form"]',
+    '[role="main"]',
+    '.main-content'
+  ];
+
+  // Amount selectors - prioritize input fields and more specific selectors
   const selectors = [
+    // Input fields first (most reliable for current transaction)
+    'input[data-automation-id*="amount"]',
+    'input[name*="amount"]',
+    'input[data-automation-id*="total"]',
+    'input[name*="total"]',
+    '.currency-input input',
+    'input[type="number"]',
+    
+    // More specific form elements
+    '[data-automation-id*="totalAmount"]',
+    '[data-automation-id*="lineAmount"]',
+    '[data-automation-id*="transactionAmount"]',
+    '.amount-field input',
+    '.total-amount input',
+    
+    // Display elements but avoid table cells
+    '[data-automation-id*="total"]:not(td)',
+    '[data-automation-id*="amount"]:not(td)',
+    '[data-testid*="amount"]:not(td)',
+    'span[data-automation-id*="total"]',
+    '.amount-field',
+    '.total-amount'
+  ];
+
+  // Helper function to check if element is likely from a list
+  const isFromList = (element: Element): boolean => {
+    return !!(element.closest('table') || 
+              element.closest('[data-automation-id*="list"]') ||
+              element.closest('[data-automation-id*="table"]') ||
+              element.closest('.list-item') ||
+              element.closest('.grid-row') ||
+              element.closest('[role="grid"]'));
+  };
+
+  // Helper function to extract and validate amount
+  const getAmountFromElement = (element: Element): number | null => {
+    const text = element.textContent || (element as HTMLInputElement).value || '';
+    const cleanText = text.replace(/[$,\s]/g, '').replace(/[^\d.-]/g, '');
+    const amount = parseFloat(cleanText);
+    
+    if (!isNaN(amount) && amount >= 0.01) {
+      return amount;
+    }
+    return null;
+  };
+
+  // Strategy 1: Try within transaction container first
+  for (const containerSelector of transactionContainers) {
+    const container = document.querySelector(containerSelector);
+    if (container) {
+      for (const selector of selectors) {
+        try {
+          const elements = container.querySelectorAll(selector);
+          for (const element of elements) {
+            if (!isFromList(element)) {
+              const amount = getAmountFromElement(element);
+              if (amount !== null) {
+                return amount;
+              }
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+    }
+  }
+
+  // Strategy 2: Fallback to document-wide search but be more selective
+  for (const selector of selectors) {
+    try {
+      const elements = document.querySelectorAll(selector);
+      const validElements = Array.from(elements).filter(element => !isFromList(element));
+      
+      // Prefer input elements over display elements
+      const inputElements = validElements.filter(el => el.tagName.toLowerCase() === 'input');
+      const checkElements = inputElements.length > 0 ? inputElements : validElements;
+      
+      for (const element of checkElements) {
+        const amount = getAmountFromElement(element);
+        if (amount !== null) {
+          return amount;
+        }
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+
+  // Strategy 3: Last resort - original simple approach but with list filtering
+  const fallbackSelectors = [
     '[data-automation-id*="total"]',
     '[data-automation-id*="amount"]',
     '.amount-field',
     '.total-amount',
-    'td[data-col="amount"]',
     'input[name*="amount"]',
-    'input[data-automation-id*="amount"]',
-    '[data-testid*="amount"]',
-    '.currency-input input',
-    'input[type="number"]',
-    'span[data-automation-id*="total"]'
+    'input[type="number"]'
   ];
 
-  for (const selector of selectors) {
+  for (const selector of fallbackSelectors) {
     try {
       const elements = document.querySelectorAll(selector);
       for (const element of elements) {
-        const text = element.textContent || (element as HTMLInputElement).value || '';
-        const cleanText = text.replace(/[$,\s]/g, '').replace(/[^\d.-]/g, '');
-        const amount = parseFloat(cleanText);
-        if (!isNaN(amount) && amount > 0) {
-          return amount;
+        if (!isFromList(element)) {
+          const amount = getAmountFromElement(element);
+          if (amount !== null) {
+            return amount;
+          }
         }
       }
     } catch (e) {
@@ -104,27 +204,38 @@ function extractCustomerVendor(): string | null {
       'input[placeholder*="Customer" i]'
     ];
   } else if (transactionType === 'Expense' || transactionType === 'Bill') {
-    // Expense/Bill-specific selectors for payee/vendor name
+    // Expense/Bill-specific selectors for payee/vendor name - prioritize input elements
     selectors = [
-      '[data-automation-id*="payee"]',
-      '[data-automation-id*="vendor"]',
+      // Specific input field selectors first (most reliable)
+      'input[data-automation-id*="payee"]:not([data-automation-id*="payeeLabel"])',
+      'input[data-automation-id*="vendor"]:not([data-automation-id*="vendorLabel"])',
       'input[name*="vendor"]',
       'input[name*="payee"]',
-      '.vendor-field',
-      '.payee-field',
-      '[data-automation-id="nameAddressComboBox"] input',
-      '[data-testid*="vendor"]',
-      '[data-testid*="payee"]',
-      'span[data-automation-id*="vendor"]',
-      'span[data-automation-id*="payee"]',
-      '[data-automation-id="vendorName"]',
-      '[data-automation-id="payeeName"]',
-      '.vendor-name input',
-      '.payee-name input',
       'input[placeholder*="payee" i]',
       'input[placeholder*="vendor" i]',
       'input[placeholder*="Payee" i]',
-      'input[placeholder*="Vendor" i]'
+      'input[placeholder*="Vendor" i]',
+      
+      // Combo box and dropdown inputs
+      '[data-automation-id="nameAddressComboBox"] input',
+      '[data-automation-id*="payeeComboBox"] input',
+      '[data-automation-id*="vendorComboBox"] input',
+      '.vendor-field input',
+      '.payee-field input',
+      '.vendor-name input',
+      '.payee-name input',
+      
+      // Specific automation IDs
+      '[data-automation-id="vendorName"]',
+      '[data-automation-id="payeeName"]',
+      
+      // Test IDs for inputs only
+      'input[data-testid*="vendor"]',
+      'input[data-testid*="payee"]',
+      
+      // Last resort - span elements but with stricter filtering
+      'span[data-automation-id*="vendor"]:not([data-automation-id*="vendorLabel"]):not([data-automation-id*="label"])',
+      'span[data-automation-id*="payee"]:not([data-automation-id*="payeeLabel"]):not([data-automation-id*="label"])'
     ];
   } else {
     // Generic selectors for other transaction types
@@ -164,7 +275,124 @@ function extractCustomerVendor(): string | null {
             text !== 'Invoice' &&
             text !== 'Expense' &&
             text !== 'Bill' &&
+            text !== 'Payee' &&
+            text !== 'Vendor' &&
+            text !== 'Customer' &&
+            text !== 'payee' &&
+            text !== 'vendor' &&
+            text !== 'customer' &&
+            !text.toLowerCase().includes('select') &&
+            !text.toLowerCase().includes('choose') &&
+            !text.toLowerCase().includes('label') &&
             text.length > 1) {
+          return text.trim();
+        }
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  
+  return null;
+}
+
+function extractInvoiceNumber(): string | null {
+  const transactionType = getTransactionTypeFromUrl();
+  
+  // Transaction type specific selectors
+  let selectors: string[] = [];
+  
+  if (transactionType === 'Invoice') {
+    // Invoice-specific selectors for invoice number
+    selectors = [
+      'input[data-automation-id*="invoiceNumber"]',
+      'input[data-automation-id*="invoice_number"]',
+      'input[name*="invoiceNumber"]',
+      'input[name*="invoice_number"]',
+      'input[placeholder*="invoice number" i]',
+      'input[placeholder*="invoice #" i]',
+      '[data-automation-id*="invoiceNumber"] input',
+      '.invoice-number input',
+      '.invoice-field input',
+      'span[data-automation-id*="invoiceNumber"]',
+      '.invoice-number',
+      '[data-testid*="invoice-number"]'
+    ];
+  } else if (transactionType === 'Expense' || transactionType === 'Bill') {
+    // Expense/Bill-specific selectors for bill/reference number
+    selectors = [
+      'input[data-automation-id*="billNumber"]',
+      'input[data-automation-id*="bill_number"]',
+      'input[data-automation-id*="refNumber"]',
+      'input[data-automation-id*="ref_number"]',
+      'input[data-automation-id*="referenceNumber"]',
+      'input[name*="billNumber"]',
+      'input[name*="bill_number"]',
+      'input[name*="refNumber"]',
+      'input[name*="ref_number"]',
+      'input[name*="referenceNumber"]',
+      'input[placeholder*="bill number" i]',
+      'input[placeholder*="bill #" i]',
+      'input[placeholder*="ref number" i]',
+      'input[placeholder*="ref #" i]',
+      'input[placeholder*="reference number" i]',
+      'input[placeholder*="reference #" i]',
+      '[data-automation-id*="billNumber"] input',
+      '[data-automation-id*="refNumber"] input',
+      '[data-automation-id*="referenceNumber"] input',
+      '.bill-number input',
+      '.ref-number input',
+      '.reference-number input',
+      'span[data-automation-id*="billNumber"]',
+      'span[data-automation-id*="refNumber"]',
+      'span[data-automation-id*="referenceNumber"]',
+      '.bill-number',
+      '.ref-number',
+      '.reference-number',
+      '[data-testid*="bill-number"]',
+      '[data-testid*="ref-number"]',
+      '[data-testid*="reference-number"]'
+    ];
+  } else {
+    // Generic selectors for other transaction types
+    selectors = [
+      'input[data-automation-id*="number"]',
+      'input[name*="number"]',
+      'input[placeholder*="number" i]',
+      '.number-field input',
+      '.document-number input'
+    ];
+  }
+
+  // Helper function to check if element is likely from a list
+  const isFromList = (element: Element): boolean => {
+    return !!(element.closest('table') || 
+              element.closest('[data-automation-id*="list"]') ||
+              element.closest('[data-automation-id*="table"]') ||
+              element.closest('.list-item') ||
+              element.closest('.grid-row') ||
+              element.closest('[role="grid"]'));
+  };
+
+  for (const selector of selectors) {
+    try {
+      const element = document.querySelector(selector);
+      if (element && !isFromList(element)) {
+        const text = element.textContent || (element as HTMLInputElement).value || '';
+        if (text.trim() && 
+            text !== 'Enter number' && 
+            text !== 'Number' &&
+            text !== 'Invoice Number' &&
+            text !== 'Bill Number' &&
+            text !== 'Reference Number' &&
+            text !== 'Ref Number' &&
+            text !== 'Ref #' &&
+            text !== 'Invoice #' &&
+            text !== 'Bill #' &&
+            !text.toLowerCase().includes('select') &&
+            !text.toLowerCase().includes('choose') &&
+            !text.toLowerCase().includes('label') &&
+            text.length > 0) {
           return text.trim();
         }
       }
@@ -209,6 +437,7 @@ export function getTransactionData(): TransactionData {
     date: extractDate(),
     amount: extractAmount(),
     customer_vendor: extractCustomerVendor(),
+    invoice_number: extractInvoiceNumber(),
     created_by: extractCreatedBy()
   };
 }

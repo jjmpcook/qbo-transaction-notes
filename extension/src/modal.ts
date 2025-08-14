@@ -5,6 +5,19 @@ declare const process: any;
 const BACKEND_URL = 'https://qbo-transaction-notes.onrender.com';
 
 function createModalHTML(transactionData: TransactionData): string {
+  // Dynamic label for invoice/bill number field based on transaction type
+  const getNumberFieldLabel = (transactionType: string): string => {
+    switch (transactionType.toLowerCase()) {
+      case 'invoice':
+        return 'Invoice Number';
+      case 'expense':
+      case 'bill':
+        return 'Bill/Ref Number';
+      default:
+        return 'Number';
+    }
+  };
+
   return `
     <div id="qbo-note-modal-overlay" style="
       position: fixed;
@@ -112,17 +125,31 @@ function createModalHTML(transactionData: TransactionData): string {
           </div>
         </div>
         
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 4px; color: #333; font-weight: 500;">Customer/Vendor</label>
-          <input id="qbo-customer-vendor" type="text" value="${transactionData.customer_vendor || ''}" style="
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: white;
-            color: #333;
-            box-sizing: border-box;
-          ">
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 4px; color: #333; font-weight: 500;">Customer/Vendor</label>
+            <input id="qbo-customer-vendor" type="text" value="${transactionData.customer_vendor || ''}" style="
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              background: white;
+              color: #333;
+              box-sizing: border-box;
+            ">
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 4px; color: #333; font-weight: 500;">${getNumberFieldLabel(transactionData.transaction_type)}</label>
+            <input id="qbo-invoice-number" type="text" value="${transactionData.invoice_number || ''}" style="
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              background: white;
+              color: #333;
+              box-sizing: border-box;
+            ">
+          </div>
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -231,6 +258,7 @@ async function submitNote(transactionData: TransactionData, note: string): Promi
   const dateInput = document.getElementById('qbo-date') as HTMLInputElement;
   const amountInput = document.getElementById('qbo-amount') as HTMLInputElement;
   const customerVendorInput = document.getElementById('qbo-customer-vendor') as HTMLInputElement;
+  const invoiceNumberInput = document.getElementById('qbo-invoice-number') as HTMLInputElement;
 
   const payload: NotePayload = {
     transaction_url: transactionData.transaction_url,
@@ -239,6 +267,7 @@ async function submitNote(transactionData: TransactionData, note: string): Promi
     date: dateInput?.value || transactionData.date || '',
     amount: parseFloat(amountInput?.value) || transactionData.amount || 0,
     customer_vendor: customerVendorInput?.value || transactionData.customer_vendor || '',
+    invoice_number: invoiceNumberInput?.value || transactionData.invoice_number || '',
     note: note,
     created_by: transactionData.created_by || ''
   };

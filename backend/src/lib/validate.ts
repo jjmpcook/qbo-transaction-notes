@@ -7,6 +7,7 @@ export const NotePayloadSchema = z.object({
   date: z.string(),
   amount: z.number(),
   customer_vendor: z.string(),
+  invoice_number: z.string().optional().default(''),
   note: z.string().min(1, 'Note cannot be empty'),
   created_by: z.string().optional().default(''),
 });
