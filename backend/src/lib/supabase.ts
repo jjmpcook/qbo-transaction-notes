@@ -39,6 +39,8 @@ export async function insertNote(noteData: NotePayload): Promise<{ id: string }>
     return { id: 'test-' + Date.now() };
   }
 
+  console.log('💾 Saving note to Supabase:', noteData);
+
   const { data, error } = await supabase
     .from('notes')
     .insert({
@@ -56,8 +58,10 @@ export async function insertNote(noteData: NotePayload): Promise<{ id: string }>
     .single();
 
   if (error) {
+    console.error('❌ Supabase insert error:', error);
     throw new Error(`Failed to insert note: ${error.message}`);
   }
 
+  console.log('✅ Note saved successfully with ID:', data.id);
   return { id: data.id };
 }

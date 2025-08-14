@@ -150,20 +150,22 @@ function createModalHTML(transactionData: TransactionData): string {
           <button id="qbo-modal-cancel" style="
             background: #6c757d;
             color: white;
-            border: none;
+            border: 2px solid transparent;
             border-radius: 4px;
             padding: 10px 20px;
             cursor: pointer;
             font-size: 14px;
+            transition: all 0.2s ease;
           ">Cancel</button>
           <button id="qbo-modal-submit" disabled style="
             background: #0077C5;
             color: white;
-            border: none;
+            border: 2px solid transparent;
             border-radius: 4px;
             padding: 10px 20px;
             cursor: pointer;
             font-size: 14px;
+            transition: all 0.2s ease;
           ">Send Note</button>
         </div>
         
@@ -333,6 +335,74 @@ export function openModal(): void {
     if (e.key === 'Escape') {
       closeModal();
     }
+    // Handle Enter key to submit (Ctrl+Enter or just Enter when not in textarea)
+    if (e.key === 'Enter' && (e.ctrlKey || e.target !== textarea)) {
+      e.preventDefault();
+      if (!submitButton.disabled) {
+        submitButton.click();
+      }
+    }
+  });
+
+  // Handle Tab key navigation and Enter key in textarea
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      submitButton.focus();
+    }
+    // Allow Ctrl+Enter to submit from textarea
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      if (!submitButton.disabled) {
+        submitButton.click();
+      }
+    }
+  });
+
+  // Handle keyboard navigation for submit button
+  submitButton.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      textarea.focus();
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!submitButton.disabled) {
+        submitButton.click();
+      }
+    }
+  });
+
+  // Add focus indicators for buttons
+  submitButton.addEventListener('focus', () => {
+    submitButton.style.border = '2px solid #FFD700';
+    submitButton.style.boxShadow = '0 0 0 3px rgba(255, 215, 0, 0.3)';
+  });
+
+  submitButton.addEventListener('blur', () => {
+    submitButton.style.border = '2px solid transparent';
+    submitButton.style.boxShadow = 'none';
+  });
+
+  cancelButton.addEventListener('focus', () => {
+    cancelButton.style.border = '2px solid #FFD700';
+    cancelButton.style.boxShadow = '0 0 0 3px rgba(255, 215, 0, 0.3)';
+  });
+
+  cancelButton.addEventListener('blur', () => {
+    cancelButton.style.border = '2px solid transparent';
+    cancelButton.style.boxShadow = 'none';
+  });
+
+  // Add focus indicator for textarea
+  textarea.addEventListener('focus', () => {
+    textarea.style.border = '2px solid #0077C5';
+    textarea.style.boxShadow = '0 0 0 3px rgba(0, 119, 197, 0.2)';
+  });
+
+  textarea.addEventListener('blur', () => {
+    textarea.style.border = '1px solid #ddd';
+    textarea.style.boxShadow = 'none';
   });
 
   setTimeout(() => textarea.focus(), 100);

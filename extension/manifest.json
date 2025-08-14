@@ -8,11 +8,13 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*.qbo.intuit.com/*"
+    "https://*.intuit.com/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://*.qbo.intuit.com/*"],
+      "matches": [
+        "https://*.intuit.com/*"
+      ],
       "js": ["content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"
@@ -21,7 +23,9 @@
   "web_accessible_resources": [
     {
       "resources": ["styles.css"],
-      "matches": ["https://*.qbo.intuit.com/*"]
+      "matches": [
+        "https://*.intuit.com/*"
+      ]
     }
   ]
 }

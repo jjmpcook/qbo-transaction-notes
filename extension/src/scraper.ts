@@ -83,24 +83,73 @@ function extractDate(): string | null {
 }
 
 function extractCustomerVendor(): string | null {
-  const selectors = [
-    '[data-automation-id*="customer"]',
-    '[data-automation-id*="vendor"]',
-    '[data-automation-id*="payee"]',
-    'input[name*="customer"]',
-    'input[name*="vendor"]',
-    '.customer-field',
-    '.vendor-field',
+  const transactionType = getTransactionTypeFromUrl();
+  
+  // Transaction type specific selectors
+  let selectors: string[] = [];
+  
+  if (transactionType === 'Invoice') {
+    // Invoice-specific selectors for customer name
+    selectors = [
+      '[data-automation-id*="customer"]',
+      'input[name*="customer"]',
+      '.customer-field',
+      '[data-automation-id="nameAddressComboBox"] input',
+      '[data-testid*="customer"]',
+      'span[data-automation-id*="customer"]',
+      '[data-automation-id="customerName"]',
+      '.bill-to input',
+      '.customer-name input',
+      'input[placeholder*="customer" i]',
+      'input[placeholder*="Customer" i]'
+    ];
+  } else if (transactionType === 'Expense' || transactionType === 'Bill') {
+    // Expense/Bill-specific selectors for payee/vendor name
+    selectors = [
+      '[data-automation-id*="payee"]',
+      '[data-automation-id*="vendor"]',
+      'input[name*="vendor"]',
+      'input[name*="payee"]',
+      '.vendor-field',
+      '.payee-field',
+      '[data-automation-id="nameAddressComboBox"] input',
+      '[data-testid*="vendor"]',
+      '[data-testid*="payee"]',
+      'span[data-automation-id*="vendor"]',
+      'span[data-automation-id*="payee"]',
+      '[data-automation-id="vendorName"]',
+      '[data-automation-id="payeeName"]',
+      '.vendor-name input',
+      '.payee-name input',
+      'input[placeholder*="payee" i]',
+      'input[placeholder*="vendor" i]',
+      'input[placeholder*="Payee" i]',
+      'input[placeholder*="Vendor" i]'
+    ];
+  } else {
+    // Generic selectors for other transaction types
+    selectors = [
+      '[data-automation-id*="customer"]',
+      '[data-automation-id*="vendor"]',
+      '[data-automation-id*="payee"]',
+      'input[name*="customer"]',
+      'input[name*="vendor"]',
+      '.customer-field',
+      '.vendor-field',
+      '[data-automation-id="nameAddressComboBox"] input',
+      '[data-testid*="customer"]',
+      '[data-testid*="vendor"]',
+      'span[data-automation-id*="customer"]',
+      'span[data-automation-id*="vendor"]'
+    ];
+  }
+
+  // Add common selectors that might work across types
+  selectors.push(
     'td[data-col="name"]',
-    '[data-automation-id="nameAddressComboBox"] input',
-    '[data-testid*="customer"]',
-    '[data-testid*="vendor"]',
     '.name-field input',
-    'span[data-automation-id*="customer"]',
-    'span[data-automation-id*="vendor"]',
-    'h1', // Sometimes company name is in page title
     '.entity-name'
-  ];
+  );
 
   for (const selector of selectors) {
     try {
@@ -111,6 +160,10 @@ function extractCustomerVendor(): string | null {
             text !== 'Select...' && 
             text !== 'Choose a customer' && 
             text !== 'Choose a vendor' &&
+            text !== 'Choose a payee' &&
+            text !== 'Invoice' &&
+            text !== 'Expense' &&
+            text !== 'Bill' &&
             text.length > 1) {
           return text.trim();
         }
@@ -162,12 +215,48 @@ export function getTransactionData(): TransactionData {
 
 export function isQboTransactionPage(): boolean {
   const url = window.location.href.toLowerCase();
-  return url.includes('qbo.intuit.com') && (
-    url.includes('/invoice') ||
-    url.includes('/bill') ||
-    url.includes('/expense') ||
-    url.includes('/journal') ||
-    url.includes('/payment') ||
-    url.includes('txnid=')
+  const isQbo = url.includes('qbo.intuit.com');
+  
+  // More specific detection - must have txnId or be in edit/create mode
+  const isTransactionPage = (
+    url.includes('txnid=') ||  // Most reliable - specific transaction ID
+    (url.includes('/invoice') && !url.includes('/invoices')) ||  // Single invoice, not list
+    (url.includes('/bill') && !url.includes('/bills')) ||        // Single bill, not list  
+    (url.includes('/expense') && !url.includes('/expenses')) ||  // Single expense, not list
+    (url.includes('/journal') && !url.includes('/journals')) || // Single journal, not list
+    (url.includes('/payment') && !url.includes('/payments')) || // Single payment, not list
+    url.includes('/transaction/') ||  // Direct transaction URLs
+    url.includes('create') ||         // Creating new transactions
+    url.includes('edit')              // Editing transactions
   );
+  
+  // Exclude list pages explicitly
+  const isListPage = (
+    url.includes('/invoices') ||
+    url.includes('/bills') ||
+    url.includes('/expenses') ||
+    url.includes('/journals') ||
+    url.includes('/payments') ||
+    url.includes('/customers') ||
+    url.includes('/vendors') ||
+    url.includes('/items') ||
+    url.includes('/reports')
+  );
+  
+  console.log('QBO Extension: Page detection -', {
+    url: url,
+    isQbo: isQbo,
+    isTransactionPage: isTransactionPage,
+    isListPage: isListPage,
+    hasTxnId: url.includes('txnid='),
+    hasInvoice: url.includes('/invoice'),
+    hasBill: url.includes('/bill'),
+    hasExpense: url.includes('/expense'),
+    hasJournal: url.includes('/journal'),
+    hasPayment: url.includes('/payment'),
+    hasTransaction: url.includes('/transaction'),
+    finalResult: isQbo && isTransactionPage && !isListPage
+  });
+  
+  return isQbo && isTransactionPage && !isListPage;
 }
