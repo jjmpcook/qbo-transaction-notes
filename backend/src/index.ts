@@ -37,6 +37,11 @@ app.get('/debug-env', (req, res) => {
 });
 
 app.get('/debug', (req, res) => {
+  // Password protection for debug endpoint
+  if (req.query.secret !== 'qbo-debug-2025') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
   res.json({
     node_env: process.env.NODE_ENV,
     has_supabase_url: !!process.env.SUPABASE_URL,

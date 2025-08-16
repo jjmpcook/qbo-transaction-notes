@@ -5,10 +5,12 @@
   "description": "Add notes to QuickBooks Online transactions",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
-    "https://*.intuit.com/*"
+    "https://*.intuit.com/*",
+    "https://*.supabase.co/*"
   ],
   "content_scripts": [
     {

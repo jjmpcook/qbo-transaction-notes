@@ -1,6 +1,7 @@
 import { injectButton } from './injectButton.js';
 import { openModal } from './modal.js';
 import { isQboTransactionPage } from './scraper.js';
+import { ensureAuthenticated } from './loginModal.js';
 
 console.log('🚀 QBO Extension: Script loaded!', window.location.href);
 
@@ -13,8 +14,17 @@ function init() {
   }
 
   console.log('QBO Extension: Transaction page detected, injecting button');
-  injectButton(() => {
-    openModal();
+  injectButton(async () => {
+    // Lazy authentication check - only validate when user tries to use the feature
+    console.log('🔑 Checking authentication before opening modal...');
+    const isAuthenticated = await ensureAuthenticated();
+    
+    if (isAuthenticated) {
+      console.log('🔑 Authentication successful, opening modal');
+      openModal();
+    } else {
+      console.log('🔑 Authentication failed or cancelled');
+    }
   });
 }
 

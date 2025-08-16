@@ -1,5 +1,6 @@
 import { getTransactionData } from './scraper.js';
 import { NotePayload, TransactionData, ApiError } from './types.js';
+import { makeDraggable, makeResizable, centerElement } from './draggable.js';
 
 declare const process: any;
 const BACKEND_URL = 'https://qbo-transaction-notes.onrender.com';
@@ -35,14 +36,15 @@ function createModalHTML(transactionData: TransactionData): string {
         background: white;
         border-radius: 8px;
         padding: 24px;
-        width: 90%;
-        max-width: 500px;
+        width: 500px;
+        min-width: 450px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        position: relative;
+        position: fixed;
+        border: 1px solid #ddd;
       ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <h2 style="margin: 0; color: #333; font-size: 20px;">Add Transaction Note</h2>
+        <div id="qbo-modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; cursor: move; padding: 12px; margin: -12px -12px 20px -12px; border-radius: 8px 8px 0 0; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <h2 style="margin: 0; color: #333; font-size: 20px;">Send Change Request</h2>
           <button id="qbo-modal-close" style="
             background: none;
             border: none;
@@ -153,8 +155,8 @@ function createModalHTML(transactionData: TransactionData): string {
         </div>
         
         <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 4px; color: #333; font-weight: 500;">Note *</label>
-          <textarea id="qbo-note-textarea" placeholder="Enter your note here..." style="
+          <label style="display: block; margin-bottom: 4px; color: #333; font-weight: 500;">Change Request Details *</label>
+          <textarea id="qbo-note-textarea" placeholder="Describe the changes you're requesting..." style="
             width: 100%;
             padding: 8px 12px;
             border: 1px solid #ddd;
@@ -193,7 +195,7 @@ function createModalHTML(transactionData: TransactionData): string {
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s ease;
-          ">Send Note</button>
+          ">Submit</button>
         </div>
         
         <div id="qbo-loading" style="
@@ -293,8 +295,8 @@ async function submitNote(transactionData: TransactionData, note: string): Promi
       modal.innerHTML = `
         <div style="text-align: center; padding: 20px;">
           <div style="color: #28a745; font-size: 48px; margin-bottom: 16px;">✓</div>
-          <h3 style="margin: 0 0 8px 0; color: #333;">Note Sent Successfully!</h3>
-          <p style="margin: 0; color: #666;">Your note has been saved and team notifications sent.</p>
+          <h3 style="margin: 0 0 8px 0; color: #333;">Change Request Submitted!</h3>
+          <p style="margin: 0; color: #666;">Your change request has been saved and team notifications sent.</p>
         </div>
       `;
       
@@ -433,6 +435,26 @@ export function openModal(): void {
     textarea.style.border = '1px solid #ddd';
     textarea.style.boxShadow = 'none';
   });
+
+  // Make modal draggable and resizable
+  const modal = document.getElementById('qbo-note-modal') as HTMLElement;
+  if (modal) {
+    // Center the modal initially
+    centerElement(modal);
+    
+    // Make it draggable by the header
+    makeDraggable(modal, { 
+      handle: '#qbo-modal-header',
+      constrainToViewport: true 
+    });
+    
+    // Make it resizable
+    makeResizable(modal, {
+      minWidth: 450,
+      minHeight: 400,
+      handles: ['se', 's', 'e', 'sw', 'w']
+    });
+  }
 
   setTimeout(() => textarea.focus(), 100);
 }

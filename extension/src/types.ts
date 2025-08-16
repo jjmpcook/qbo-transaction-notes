@@ -30,3 +30,33 @@ export interface ApiError {
   error: string;
   details?: string;
 }
+
+// Authentication types
+export interface SubscriptionResponse {
+  valid: boolean;
+  plan: string;
+  userId: string;
+}
+
+export interface AuthCache {
+  isValid: boolean;
+  plan: string;
+  userId: string;
+  timestamp: number;
+  userEmail: string;
+}
+
+export interface UserCredentials {
+  email: string;
+}
+
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface AuthStatus {
+  isValid: boolean;
+  plan?: string;
+  userId?: string;
+}

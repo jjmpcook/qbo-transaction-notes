@@ -1,14 +1,14 @@
-export function createAddNoteButton(onClickHandler: () => void): HTMLElement {
+export function createChangeRequestButton(onClickHandler: () => void): HTMLElement {
   const button = document.createElement('button');
-  button.id = 'qbo-add-note-btn';
+  button.id = 'qbo-change-request-btn';
   button.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14.5 3L20.5 9l-11 11H3v-6.5z"/>
-      <path d="m13 5 3 3"/>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
     </svg>
-    <span style="margin-left: 5px;">Add Note</span>
+    <span style="margin-left: 5px;">Request Change</span>
   `;
-  button.className = 'qbo-add-note-toolbar-btn';
+  button.className = 'qbo-change-request-toolbar-btn';
   
   button.style.cssText = `
     background: #0077C5;
@@ -45,11 +45,11 @@ export function createAddNoteButton(onClickHandler: () => void): HTMLElement {
 }
 
 export function injectButton(onClickHandler: () => void): void {
-  if (document.getElementById('qbo-add-note-btn')) {
+  if (document.getElementById('qbo-change-request-btn')) {
     return;
   }
 
-  const button = createAddNoteButton(onClickHandler);
+  const button = createChangeRequestButton(onClickHandler);
   
   // Debug: Log what we're looking for
   console.log('QBO Extension: Looking for toolbar...');
