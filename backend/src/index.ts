@@ -42,7 +42,12 @@ app.get('/debug', (req, res) => {
     has_supabase_url: !!process.env.SUPABASE_URL,
     has_supabase_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     supabase_url_length: process.env.SUPABASE_URL?.length || 0,
-    all_env_keys: Object.keys(process.env).filter(key => key.includes('SUPABASE'))
+    has_slack_bot_token: !!process.env.SLACK_BOT_TOKEN,
+    has_slack_channel: !!process.env.SLACK_CHANNEL,
+    slack_channel_value: process.env.SLACK_CHANNEL,
+    slack_shared_channel_value: process.env.SLACK_SHARED_CHANNEL,
+    all_env_keys: Object.keys(process.env).filter(key => key.includes('SUPABASE') || key.includes('SLACK')),
+    all_env_keys_starting_with_s: Object.keys(process.env).filter(key => key.startsWith('S'))
   });
 });
 

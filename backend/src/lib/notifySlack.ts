@@ -1,6 +1,15 @@
 import { NotePayload } from './validate.js';
+import { WebClient } from '@slack/web-api';
 
-const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
+// DUAL-CHANNEL STRATEGY: Send notifications to multiple parties
+// - Primary channel: User's own workspace/channel (full control)
+// - Shared channel: Client/accountant workspace (via invitation)
+// This approach avoids complex multi-workspace authentication while
+// enabling seamless communication between user and external parties
+
+const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
+const SLACK_CHANNEL = process.env.SLACK_CHANNEL; // Primary channel (user's workspace)
+const SLACK_SHARED_CHANNEL = process.env.SLACK_SHARED_CHANNEL; // Secondary channel (shared/client workspace)
 
 interface SlackMessage {
   text: string;
@@ -22,10 +31,12 @@ interface SlackMessage {
 }
 
 export async function notifySlack(noteData: NotePayload): Promise<void> {
-  if (!SLACK_WEBHOOK_URL) {
-    console.warn('SLACK_WEBHOOK_URL not configured, skipping Slack notification');
+  if (!SLACK_BOT_TOKEN || !SLACK_CHANNEL) {
+    console.warn('SLACK_BOT_TOKEN or SLACK_CHANNEL not configured, skipping Slack notification');
     return;
   }
+
+  const slack = new WebClient(SLACK_BOT_TOKEN);
 
   // Format amount as currency
   const formattedAmount = new Intl.NumberFormat('en-US', {
@@ -159,16 +170,27 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
   });
 
   try {
-    const response = await fetch(SLACK_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(message),
+    // Send to primary channel
+    await slack.chat.postMessage({
+      channel: SLACK_CHANNEL,
+      text: message.text,
+      blocks: message.blocks,
     });
 
-    if (!response.ok) {
-      throw new Error(`Slack webhook failed: ${response.status} ${response.statusText}`);
+    // Send to shared channel if configured
+    const SHARED_CHANNEL = process.env.SLACK_SHARED_CHANNEL;
+    if (SHARED_CHANNEL) {
+      console.log(`Sending to shared channel: ${SHARED_CHANNEL}`);
+      try {
+        await slack.chat.postMessage({
+          channel: SHARED_CHANNEL,
+          text: message.text,
+          blocks: message.blocks,
+        });
+        console.log(`✅ Shared channel message sent to ${SHARED_CHANNEL}`);
+      } catch (sharedError) {
+        console.error(`❌ Failed to send to shared channel ${SHARED_CHANNEL}:`, sharedError);
+      }
     }
 
     console.log('Slack notification sent successfully');
