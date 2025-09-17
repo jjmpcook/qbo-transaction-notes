@@ -6,12 +6,39 @@ export class AuthService {
   private static readonly API_ENDPOINT = 'https://eazmvistbyiiepozlpan.supabase.co/functions/v1/validate-subscription';
   private static readonly SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhem12aXN0YnlpaWVwb3pscGFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5Mzc3NzQsImV4cCI6MjA3MDUxMzc3NH0.6eSI51dHvBo2lyOVtB-r7nZd0gxDdLiFs-ape6cjIig'; // Replace with your actual anon key
 
+  // Temporary flag to bypass authentication while endpoint is down
+  private static readonly BYPASS_AUTH = true;
+
   /**
    * Validates subscription with lazy loading and caching
    * Only checks API if cache is expired or missing
    */
   static async validateSubscription(): Promise<boolean> {
     try {
+      // Temporary bypass while endpoint is down
+      if (this.BYPASS_AUTH) {
+        console.log('🔑 Auth: Bypassing authentication (endpoint unavailable)');
+
+        // Get user email for logging purposes
+        const userEmail = await this.getUserEmail();
+        if (!userEmail) {
+          console.log('🔑 Auth: No user email found');
+          return false;
+        }
+
+        // Cache a valid result to avoid repeated prompts
+        await this.setCachedAuth({
+          isValid: true,
+          plan: 'bypass',
+          userId: 'bypass-user',
+          timestamp: Date.now(),
+          userEmail,
+        });
+
+        console.log('🔑 Auth: Bypass authentication successful');
+        return true;
+      }
+
       // Check cache first
       const cached = await this.getCachedAuth();
       if (cached && this.isCacheValid(cached)) {
@@ -40,7 +67,7 @@ export class AuthService {
 
       if (!response.ok) {
         console.error('🔑 Auth: API request failed:', response.status, response.statusText);
-        
+
         // Log the error response for debugging
         try {
           const errorText = await response.text();
@@ -48,12 +75,12 @@ export class AuthService {
         } catch (e) {
           console.error('🔑 Auth: Could not read error response');
         }
-        
+
         return false;
       }
 
       const result: SubscriptionResponse = await response.json();
-      
+
       // Cache the result
       await this.setCachedAuth({
         isValid: result.valid,
