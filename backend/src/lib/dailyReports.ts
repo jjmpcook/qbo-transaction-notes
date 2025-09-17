@@ -1,5 +1,6 @@
 import { supabase, NoteRecord } from './supabase.js';
 import { GoogleSheetsService } from './googleSheetsSimple.js';
+import { FileStorage } from './fileStorage.js';
 
 interface DailyReportSummary {
   totalNotes: number;
@@ -19,36 +20,42 @@ export class DailyReportsService {
    * Get transactions for a specific date range
    */
   static async getTransactionsForDate(date: string): Promise<NoteRecord[]> {
-    if (!supabase) {
-      console.log('📝 Test mode - no database connection');
-      return [];
+    // Try Supabase first
+    if (supabase) {
+      try {
+        // Parse the date and get start/end of day in UTC
+        const targetDate = new Date(date);
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { data, error } = await supabase
+          .from('notes')
+          .select('*')
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString())
+          .order('created_at', { ascending: true });
+
+        if (!error && data) {
+          console.log(`📊 Found ${data.length} transactions from database for ${date}`);
+          return data as NoteRecord[];
+        }
+
+        console.log('📝 Database query failed, falling back to file storage');
+      } catch (error) {
+        console.log('📝 Database connection failed, falling back to file storage');
+      }
     }
 
-    // Parse the date and get start/end of day in UTC
-    const targetDate = new Date(date);
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
+    // Fall back to file storage
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .gte('created_at', startOfDay.toISOString())
-        .lte('created_at', endOfDay.toISOString())
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('❌ Error fetching transactions:', error);
-        throw error;
-      }
-
-      console.log(`📊 Found ${data?.length || 0} transactions for ${date}`);
-      return data as NoteRecord[] || [];
+      const fileData = await FileStorage.getTransactionsForDate(date);
+      console.log(`📊 Found ${fileData.length} transactions from file storage for ${date}`);
+      return fileData as NoteRecord[];
     } catch (error) {
-      console.error('❌ Failed to fetch transactions for date:', date, error);
+      console.error('❌ Both database and file storage failed for date:', date, error);
       return [];
     }
   }

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NotePayload } from './validate.js';
+import { FileStorage } from './fileStorage.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -60,16 +61,18 @@ export async function insertNote(noteData: NotePayload): Promise<{ id: string }>
 
     if (error) {
       console.error('❌ Supabase insert error:', error);
-      // Instead of throwing, fall back to test mode
-      console.log('📝 Falling back to test mode due to database error');
-      return { id: 'fallback-' + Date.now() };
+      // Fall back to file storage
+      console.log('📝 Falling back to file storage due to database error');
+      const fileId = await FileStorage.storeTransaction(noteData);
+      return { id: fileId };
     }
 
     console.log('✅ Note saved successfully with ID:', data.id);
     return { id: data.id };
   } catch (error) {
     console.error('❌ Supabase connection failed:', error);
-    console.log('📝 Falling back to test mode due to connection error');
-    return { id: 'fallback-' + Date.now() };
+    console.log('📝 Falling back to file storage due to connection error');
+    const fileId = await FileStorage.storeTransaction(noteData);
+    return { id: fileId };
   }
 }
