@@ -31,10 +31,17 @@ interface SlackMessage {
 }
 
 export async function notifySlack(noteData: NotePayload): Promise<void> {
-  if (!SLACK_BOT_TOKEN || !SLACK_CHANNEL) {
-    console.warn('SLACK_BOT_TOKEN or SLACK_CHANNEL not configured, skipping Slack notification');
+  if (!SLACK_BOT_TOKEN) {
+    console.warn('SLACK_BOT_TOKEN not configured, skipping Slack notification');
     return;
   }
+
+  if (!SLACK_CHANNEL) {
+    console.warn('SLACK_CHANNEL not configured, skipping Slack notification');
+    return;
+  }
+
+  console.log(`🔔 Attempting to send Slack notification to primary channel: ${SLACK_CHANNEL}`);
 
   const slack = new WebClient(SLACK_BOT_TOKEN);
 
@@ -171,16 +178,18 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
 
   try {
     // Send to primary channel
+    console.log(`📤 Sending to primary channel: ${SLACK_CHANNEL}`);
     await slack.chat.postMessage({
       channel: SLACK_CHANNEL,
       text: message.text,
       blocks: message.blocks,
     });
+    console.log(`✅ Primary channel message sent to ${SLACK_CHANNEL}`);
 
     // Send to shared channel if configured
     const SHARED_CHANNEL = process.env.SLACK_SHARED_CHANNEL;
-    if (SHARED_CHANNEL) {
-      console.log(`Sending to shared channel: ${SHARED_CHANNEL}`);
+    if (SHARED_CHANNEL && SHARED_CHANNEL.trim()) {
+      console.log(`📤 Sending to shared channel: ${SHARED_CHANNEL}`);
       try {
         await slack.chat.postMessage({
           channel: SHARED_CHANNEL,
@@ -190,12 +199,15 @@ export async function notifySlack(noteData: NotePayload): Promise<void> {
         console.log(`✅ Shared channel message sent to ${SHARED_CHANNEL}`);
       } catch (sharedError) {
         console.error(`❌ Failed to send to shared channel ${SHARED_CHANNEL}:`, sharedError);
+        // Don't throw error for shared channel failures - primary channel success is enough
       }
+    } else {
+      console.log('ℹ️  No shared channel configured');
     }
 
-    console.log('Slack notification sent successfully');
+    console.log('✅ Slack notification completed successfully');
   } catch (error) {
-    console.error('Failed to send Slack notification:', error);
+    console.error('❌ Failed to send Slack notification to primary channel:', error);
     throw error;
   }
 }

@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import notesRouter from './routes/notes.js';
+import reportsRouter from './routes/reports.js';
+import { ReportScheduler } from './lib/scheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +59,7 @@ app.get('/debug', (req, res) => {
 });
 
 app.use('/', notesRouter);
+app.use('/reports', reportsRouter);
 
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', err);
@@ -69,4 +72,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`Reports API: http://localhost:${PORT}/reports/status`);
+
+  // Initialize scheduler from environment variables
+  ReportScheduler.initFromEnvironment();
 });
