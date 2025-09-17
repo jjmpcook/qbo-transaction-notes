@@ -176,6 +176,40 @@ router.get('/preview/:date?', async (req, res) => {
 });
 
 /**
+ * GET /reports/csv/today
+ * Download CSV report for today's date
+ */
+router.get('/csv/today', async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    console.log(`📊 Generating CSV report for today: ${today}...`);
+
+    const reportData = await DailyReportsService.generateDailyReportData(today);
+    const csvResponse = CSVExportService.generateDownloadResponse(reportData);
+
+    // Log the export
+    CSVExportService.logExportSummary(reportData);
+
+    // Set headers for download
+    Object.entries(csvResponse.headers).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
+
+    // Send CSV content
+    res.send(csvResponse.content);
+
+    console.log(`✅ Today's CSV download completed: ${csvResponse.filename}`);
+  } catch (error) {
+    console.error('❌ Today\'s CSV export failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Today\'s CSV export failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * GET /reports/csv/:date?
  * Download CSV report for a specific date
  */
