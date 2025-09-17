@@ -181,8 +181,12 @@ router.get('/preview/:date?', async (req, res) => {
  */
 router.get('/csv/today', async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    console.log(`📊 Generating CSV report for today: ${today}...`);
+    // Get today's date in Pacific Time
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Los_Angeles'
+    }); // Returns YYYY-MM-DD format in Pacific Time
+
+    console.log(`📊 Generating CSV report for today (Pacific Time): ${today}...`);
 
     const reportData = await DailyReportsService.generateDailyReportData(today);
     const csvResponse = CSVExportService.generateDownloadResponse(reportData);
@@ -239,6 +243,40 @@ router.get('/csv/:date?', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'CSV export failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /reports/csv-preview/today
+ * Preview today's CSV data as JSON (for debugging)
+ */
+router.get('/csv-preview/today', async (req, res) => {
+  try {
+    // Get today's date in Pacific Time
+    const today = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'America/Los_Angeles'
+    });
+
+    const reportData = await DailyReportsService.generateDailyReportData(today);
+    const csv = CSVExportService.generateCSV(reportData);
+    const filename = CSVExportService.generateFilename(reportData.date);
+
+    res.json({
+      success: true,
+      filename,
+      actualDate: today,
+      serverDate: reportData.date,
+      summary: reportData.summary,
+      csvPreview: csv.split('\n').slice(0, 10), // First 10 lines
+      totalLines: csv.split('\n').length,
+    });
+  } catch (error) {
+    console.error('❌ Today\'s CSV preview failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Today\'s CSV preview failed',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
