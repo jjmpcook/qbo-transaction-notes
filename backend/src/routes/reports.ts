@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { DailyReportsService } from '../lib/dailyReports.js';
 import { ReportScheduler } from '../lib/scheduler.js';
 import { GoogleSheetsService } from '../lib/googleSheetsSimple.js';
+import { CSVExportService } from '../lib/csvExport.js';
 
 const router = Router();
 
@@ -169,6 +170,71 @@ router.get('/preview/:date?', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Report preview failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /reports/csv/:date?
+ * Download CSV report for a specific date
+ */
+router.get('/csv/:date?', async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    console.log(`📊 Generating CSV report${date ? ` for ${date}` : ''}...`);
+
+    const reportData = await DailyReportsService.generateDailyReportData(date);
+    const csvResponse = CSVExportService.generateDownloadResponse(reportData);
+
+    // Log the export
+    CSVExportService.logExportSummary(reportData);
+
+    // Set headers for download
+    Object.entries(csvResponse.headers).forEach(([key, value]) => {
+      res.setHeader(key, value);
+    });
+
+    // Send CSV content
+    res.send(csvResponse.content);
+
+    console.log(`✅ CSV download completed: ${csvResponse.filename}`);
+  } catch (error) {
+    console.error('❌ CSV export failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'CSV export failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * GET /reports/csv-preview/:date?
+ * Preview CSV data as JSON (for debugging)
+ */
+router.get('/csv-preview/:date?', async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    const reportData = await DailyReportsService.generateDailyReportData(date);
+    const csv = CSVExportService.generateCSV(reportData);
+    const filename = CSVExportService.generateFilename(reportData.date);
+
+    res.json({
+      success: true,
+      filename,
+      date: reportData.date,
+      summary: reportData.summary,
+      csvPreview: csv.split('\n').slice(0, 10), // First 10 lines
+      totalLines: csv.split('\n').length,
+    });
+  } catch (error) {
+    console.error('❌ CSV preview failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'CSV preview failed',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
