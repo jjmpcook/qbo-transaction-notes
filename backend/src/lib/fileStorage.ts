@@ -83,25 +83,61 @@ export class FileStorage {
   }
 
   /**
-   * Get transactions for a specific date
+   * Get transactions for a specific date (Pacific Time)
    */
   static async getTransactionsForDate(date: string): Promise<any[]> {
     try {
       const allTransactions = await this.getAllTransactions();
 
-      const targetDate = new Date(date);
-      const startOfDay = new Date(targetDate);
-      startOfDay.setHours(0, 0, 0, 0);
+      // Convert target date to Pacific Time boundaries
+      const targetDate = new Date(date + 'T00:00:00');
 
-      const endOfDay = new Date(targetDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      // Get start and end of day in Pacific Time, then convert to UTC for comparison
+      const startOfDayPacific = new Date(targetDate.toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles'
+      }));
+      startOfDayPacific.setHours(0, 0, 0, 0);
+
+      const endOfDayPacific = new Date(targetDate.toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles'
+      }));
+      endOfDayPacific.setHours(23, 59, 59, 999);
+
+      // Convert Pacific time boundaries to UTC for comparison with stored UTC timestamps
+      const utcOffset = new Date().getTimezoneOffset() * 60000;
+      const pacificOffset = 8 * 60 * 60 * 1000; // Pacific is UTC-8 (or UTC-7 in DST)
+
+      const startOfDayUTC = new Date(startOfDayPacific.getTime() + pacificOffset);
+      const endOfDayUTC = new Date(endOfDayPacific.getTime() + pacificOffset);
 
       const filteredTransactions = allTransactions.filter(transaction => {
         const createdAt = new Date(transaction.created_at);
-        return createdAt >= startOfDay && createdAt <= endOfDay;
+
+        // Convert stored UTC time to Pacific for comparison
+        const createdAtPacific = new Date(createdAt.toLocaleString('en-US', {
+          timeZone: 'America/Los_Angeles'
+        }));
+
+        const createdDatePacific = createdAtPacific.toLocaleDateString('en-CA', {
+          timeZone: 'America/Los_Angeles'
+        });
+
+        return createdDatePacific === date;
       });
 
-      console.log(`📊 Found ${filteredTransactions.length} transactions for ${date}`);
+      console.log(`📊 Found ${filteredTransactions.length} transactions for ${date} (Pacific Time)`);
+      console.log(`📅 Searched transactions from ${allTransactions.length} total records`);
+
+      if (filteredTransactions.length > 0) {
+        console.log('📝 Sample transaction times:');
+        filteredTransactions.slice(0, 3).forEach(t => {
+          const pacificTime = new Date(t.created_at).toLocaleString('en-US', {
+            timeZone: 'America/Los_Angeles'
+          });
+          console.log(`   - ${t.id}: ${pacificTime} Pacific`);
+        });
+      }
+
       return filteredTransactions;
     } catch (error) {
       console.error('❌ Error filtering transactions by date:', error);
